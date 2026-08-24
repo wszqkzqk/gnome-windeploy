@@ -88,11 +88,9 @@ def test_end_to_end_synthetic_stack(monkeypatch, tmp_path):
         "libgdk_pixbuf-2.0-0.dll",
     }
 
-    # Mirrored modules/loaders fed back into the closure and staged.
     assert (destdir / "lib/gio/modules/libgiognutls.dll").is_file()
     assert (destdir / "lib/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader-png.dll").is_file()
 
-    # Caches regenerated against the staged tree, with relativized paths.
     assert (destdir / "share/glib-2.0/schemas/gschemas.compiled").is_file()
     gio_cache = (destdir / "lib/gio/modules/giomodule.cache").read_text(encoding="utf-8")
     assert gio_cache == "libgiognutls.dll\n"
@@ -110,7 +108,6 @@ def test_end_to_end_synthetic_stack(monkeypatch, tmp_path):
     assert (destdir / "share/locale/zh_CN/LC_MESSAGES/glib20.mo").is_file()
     assert not (destdir / "share/locale/zh_CN/LC_MESSAGES/gtk40.mo").exists()
 
-    # App tree wins over dependency files on collision.
     assert (destdir / "share/mime/globs").read_text(encoding="utf-8") == "app version"
     assert any("share/mime/globs" in line for line in report.overrides)
 
@@ -139,12 +136,10 @@ def test_nonstandard_layout_anchors_own_directory(tmp_path):
         tool_runner=no_tool,
     )
 
-    # The odd directory itself is the anchor root: binaries land at the top.
     assert (destdir / "app.exe").is_file()
     assert (destdir / "libglib-2.0-0.dll").is_file()
     assert (destdir / "share/glib-2.0/schemas/x.gschema.xml").is_file()
     assert report.prefixes == [tools]
-    # The schema compiler is absent from this layout: warning, not failure.
     assert any("glib-compile-schemas" in line for line in report.warnings)
 
 

@@ -78,5 +78,4 @@ def test_deps_mode_merges_multiple_prefixes(tmp_path):
         "share/locale/de/LC_MESSAGES/glib20.mo",
         "share/locale/ja/LC_MESSAGES/glib20.mo",
     }
-    # Same-relative-path collision: first prefix wins.
     assert (tmp_path / "out/share/locale/de/LC_MESSAGES/glib20.mo").read_text() == "first"

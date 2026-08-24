@@ -500,11 +500,9 @@ def deploy(
             )
             for rel_dir in desc.mirror_dirs:
                 if anchored:
-                    # Merge every anchored prefix that contains the directory.
                     for prefix in search:
                         stager.mirror_dir(prefix, rel_dir, name, icon_filter)
                 else:
-                    # Data-only: first prefix containing the directory wins.
                     for prefix in search:
                         if (prefix / rel_dir).is_dir():
                             stager.mirror_dir(prefix, rel_dir, name, icon_filter)
@@ -529,7 +527,6 @@ def deploy(
                         break
             progress = True
 
-        # Feed newly staged PE files back into the closure.
         for src in stager.new_sources:
             if src.suffix.lower() in PE_SUFFIXES and src not in resolver.scanned:
                 binary_queue.append(src)

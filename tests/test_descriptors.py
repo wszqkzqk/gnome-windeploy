@@ -72,6 +72,5 @@ def test_data_only_search_prefixes_order():
         REGISTRY["sharedmime"], closure, known, implied_by, REGISTRY
     )
 
-    # The implying component's prefix comes first, then all known prefixes.
     assert not anchored
     assert search == [Path("/stack"), Path("/hint"), Path("/other")]

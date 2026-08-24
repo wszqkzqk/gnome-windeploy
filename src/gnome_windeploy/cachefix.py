@@ -7,14 +7,8 @@ import re
 from collections.abc import Sequence
 from pathlib import Path
 
-# A path must not be immediately preceded by a word character or separator, so
-# that a prefix never matches the tail of a longer unrelated path.
+# Boundary guards: never match the tail of a longer path (e.g. "ucrt64-extra").
 _LEFT_BOUNDARY = r"(?<![\w/\\])"
-
-# Path characters after the prefix: anything but whitespace or quoting/piping
-# characters that would terminate a path inside a cache/config line. The tail
-# must begin with a separator, and the whole match must not end mid-component
-# (so that e.g. "ucrt64-extra" never matches the prefix "ucrt64").
 _TAIL = r"([/\\][^\s\"'<>|]*)?(?![\w.-])"
 
 
