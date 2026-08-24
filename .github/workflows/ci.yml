@@ -28,11 +28,6 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      # MSYS2 provides the whole toolchain: compiler, the GTK/GStreamer stack
-      # the test app links against, and the Python environment the tool runs
-      # in. Python deps come from pacman (PyPI ships no wheels for mingw
-      # Python's platform tag); the project itself is installed with --no-deps
-      # --no-build-isolation so pip uses pacman's hatchling and never hits PyPI.
       - uses: actions/checkout@v4
       - uses: msys2/setup-msys2@v2
         with:
