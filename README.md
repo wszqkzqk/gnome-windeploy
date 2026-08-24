@@ -46,7 +46,7 @@ collected into your app directory on Windows".
 ```sh
 pip install gnome-windeploy   # or: pip install -e . from a checkout
 
-gnome-windeploy app.exe --prefix /ucrt64 --destdir dist --zip
+gnome-windeploy /ucrt64/bin/app.exe --destdir dist --zip
 ```
 
 Result: `dist/` mirrors the prefix layout (`bin/`, `lib/`, `share/`, `etc/`)
@@ -59,8 +59,7 @@ gnome_windeploy` does the same thing.
 | --- | --- |
 | `EXE ...` (positional, 1+) | Compiled executables to deploy. |
 | `--destdir DIR` | Output directory (required; must not exist or be empty). |
-| `--prefix DIR` | Installation prefix search-root hint (repeatable); its `bin/` and `lib/` become initial DLL candidate dirs. |
-| `--dll-dir DIR` | Extra DLL search directory (repeatable). |
+| `--dll-dir DIR` | Extra DLL search directory, for exes not co-located with their DLLs (repeatable). |
 | `--app-tree DIR` | A `meson install --destdir` tree merged in *before* dependency staging; app files win on collision. |
 | `--include RELDIR` | Force-mirror an arbitrary prefix-relative directory (repeatable) — the escape hatch for anything the registry doesn't know. |
 | `--icons full\|scalable\|symbolic` | Icon theme policy (default: `full`). |
@@ -116,4 +115,4 @@ UCRT64.
 
 ## License
 
-MIT
+GPL-2.0-or-later
