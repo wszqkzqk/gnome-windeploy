@@ -23,8 +23,6 @@ def build_fake_stack(prefix):
     touch(prefix / "share/icons/Adwaita/scalable/apps/foo.svg", "<svg/>")
     touch(prefix / "share/icons/Adwaita/16x16/apps/foo.png", "png")
     touch(prefix / "share/icons/hicolor/index.theme", "[Icon Theme]")
-    touch(prefix / "share/mime/packages/freedesktop.org.xml", "<mime-info/>")
-    touch(prefix / "share/mime/globs", "dep version")
     touch(prefix / "share/locale/de/LC_MESSAGES/glib20.mo")
     touch(prefix / "share/locale/de/LC_MESSAGES/gtk40.mo")
     touch(prefix / "share/locale/zh_CN/LC_MESSAGES/glib20.mo")
@@ -69,7 +67,7 @@ def test_end_to_end_synthetic_stack(monkeypatch, tmp_path):
     app, graph, system32 = build_fake_stack(prefix)
     monkeypatch.setattr(pe, "default_system_dirs", lambda: [system32])
     app_tree = tmp_path / "apptree"
-    touch(app_tree / "share/mime/globs", "app version")
+    touch(app_tree / "share/icons/hicolor/index.theme", "app version")
     destdir = tmp_path / "dist"
 
     report = deploy(
@@ -102,18 +100,18 @@ def test_end_to_end_synthetic_stack(monkeypatch, tmp_path):
 
     assert (destdir / "share/icons/Adwaita/index.theme").is_file()
     assert (destdir / "share/icons/Adwaita/16x16/apps/foo.png").is_file()
-    assert (destdir / "share/mime/packages/freedesktop.org.xml").is_file()
     assert (destdir / "share/locale/de/LC_MESSAGES/glib20.mo").is_file()
     assert (destdir / "share/locale/de/LC_MESSAGES/gtk40.mo").is_file()
     assert (destdir / "share/locale/zh_CN/LC_MESSAGES/glib20.mo").is_file()
     assert not (destdir / "share/locale/zh_CN/LC_MESSAGES/gtk40.mo").exists()
 
-    assert (destdir / "share/mime/globs").read_text(encoding="utf-8") == "app version"
-    assert any("share/mime/globs" in line for line in report.overrides)
+    hicolor_index = destdir / "share/icons/hicolor/index.theme"
+    assert hicolor_index.read_text(encoding="utf-8") == "app version"
+    assert any("share/icons/hicolor/index.theme" in line for line in report.overrides)
 
     assert report.exes == ["bin/app.exe"]
     assert report.prefixes == [prefix]
-    assert set(report.descriptors) >= {"glib", "gtk4", "gdkpixbuf", "sharedmime"}
+    assert set(report.descriptors) >= {"glib", "gtk4", "gdkpixbuf"}
     assert report.collisions == []
     assert report.warnings == []
     assert report.output_size > 0

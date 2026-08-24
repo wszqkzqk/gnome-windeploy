@@ -1,4 +1,4 @@
-"""GTK 3: icon themes, optional themes/settings dirs, shared-mime-info."""
+"""GTK 3: icon themes, optional themes/settings dirs."""
 
 from gnome_windeploy.descriptors.base import Descriptor
 
@@ -11,6 +11,5 @@ descriptor = Descriptor(
         "share/gtk-3.0",
         "share/themes/Adwaita",
     ),
-    implies=("sharedmime",),
     gettext_domains=("gtk30",),
 )

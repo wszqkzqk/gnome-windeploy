@@ -3,25 +3,14 @@
 from pathlib import Path
 
 from gnome_windeploy.descriptors import REGISTRY
+from gnome_windeploy.descriptors.base import Descriptor
 from gnome_windeploy.engine import descriptor_search_prefixes, resolve_activation
 
 
-def test_registry_shape():
-    assert set(REGISTRY) == {
-        "glib",
-        "gdkpixbuf",
-        "gstreamer",
-        "gtk4",
-        "gtk3",
-        "libadwaita",
-        "sharedmime",
-        "fontconfig",
-    }
-    assert REGISTRY["glib"].always
-    assert REGISTRY["gtk4"].implies == ("sharedmime",)
-    # sharedmime is data-only: no DLL triggers of its own.
-    assert REGISTRY["sharedmime"].trigger_dlls == frozenset()
-    assert not REGISTRY["sharedmime"].always
+def synthetic_registry():
+    gtk = Descriptor(name="gtk", trigger_dlls=frozenset({"libgtk.dll"}), implies=("data",))
+    data = Descriptor(name="data", mirror_dirs=("share/data",))
+    return {"gtk": gtk, "data": data}
 
 
 def test_glib_is_always_active():
@@ -30,17 +19,16 @@ def test_glib_is_always_active():
     assert len(activated) == 1
 
 
-def test_trigger_activation_and_implies_transitivity():
-    activated, implied_by = resolve_activation(REGISTRY, ["libgtk-4-1.dll", "KERNEL32.DLL"])
+def test_trigger_activation():
+    activated, _ = resolve_activation(REGISTRY, ["libgtk-4-1.dll", "KERNEL32.DLL"])
 
-    assert set(activated) == {"glib", "gtk4", "sharedmime"}
-    assert implied_by["sharedmime"] == ["gtk4"]
+    assert set(activated) == {"glib", "gtk4"}
 
 
-def test_implies_chains_resolve_recursively():
+def test_multiple_triggers_activate_independently():
     activated, _ = resolve_activation(REGISTRY, ["libadwaita-1-0.dll", "libgtk-4-1.dll"])
 
-    assert {"glib", "gtk4", "sharedmime", "libadwaita"} <= set(activated)
+    assert {"glib", "gtk4", "libadwaita"} <= set(activated)
 
 
 def test_gtk3_does_not_activate_gtk4():
@@ -48,7 +36,13 @@ def test_gtk3_does_not_activate_gtk4():
 
     assert "gtk3" in activated
     assert "gtk4" not in activated
-    assert "sharedmime" in activated
+
+
+def test_implies_and_data_only_activation():
+    activated, implied_by = resolve_activation(synthetic_registry(), ["libgtk.dll"])
+
+    assert set(activated) == {"gtk", "data"}
+    assert implied_by["data"] == ["gtk"]
 
 
 def test_dll_anchored_search_prefixes():
@@ -64,12 +58,13 @@ def test_dll_anchored_search_prefixes():
 
 
 def test_data_only_search_prefixes_order():
-    closure = {"libgtk-4-1.dll": Path("/stack/bin/libgtk-4-1.dll")}
+    registry = synthetic_registry()
+    closure = {"libgtk.dll": Path("/stack/bin/libgtk.dll")}
     known = [Path("/hint"), Path("/other")]
-    _, implied_by = resolve_activation(REGISTRY, closure.keys())
+    _, implied_by = resolve_activation(registry, closure.keys())
 
     search, anchored = descriptor_search_prefixes(
-        REGISTRY["sharedmime"], closure, known, implied_by, REGISTRY
+        registry["data"], closure, known, implied_by, registry
     )
 
     assert not anchored

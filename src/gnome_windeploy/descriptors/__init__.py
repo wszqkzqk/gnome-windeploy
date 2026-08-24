@@ -8,11 +8,10 @@ from gnome_windeploy.descriptors import (
     gtk3,
     gtk4,
     libadwaita,
-    sharedmime,
 )
 from gnome_windeploy.descriptors.base import CacheFixup, Descriptor
 
-_MODULES = (glib, gdkpixbuf, gstreamer, gtk4, gtk3, libadwaita, sharedmime, fontconfig)
+_MODULES = (glib, gdkpixbuf, gstreamer, gtk4, gtk3, libadwaita, fontconfig)
 
 REGISTRY: dict[str, Descriptor] = {module.descriptor.name: module.descriptor for module in _MODULES}
 
