@@ -1,7 +1,5 @@
 # gnome-windeploy
 
-[![License: GPL v2+](https://img.shields.io/badge/License-GPL%20v2%2B-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0)
-
 A deployment tool for GNOME-platform desktop apps on Windows — the GNOME
 equivalent of Qt's `windeployqt`.
 
@@ -117,4 +115,4 @@ UCRT64.
 
 ## License
 
-This project is licensed under the GPL-2.0-or-later license. For more details, see the `LICENSE` file.
+[![License: GPL v2+](https://img.shields.io/badge/License-GPL%20v2%2B-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0)
