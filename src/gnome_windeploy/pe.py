@@ -132,19 +132,19 @@ def default_imports_provider(path: Path) -> list[str]:
     return sorted(regular | delay)
 
 
+def _norm(path: Path) -> Path:
+    """Canonicalize *path* so user input (e.g. cygpath -m forward slashes) and
+    filesystem results (``iterdir``, OS-native separators) compare equal."""
+    return Path(os.path.normpath(path))
+
+
 def _list_files_lower(directory: Path) -> dict[str, Path]:
     """Map lower-cased file name to path for every file directly in *directory*."""
     try:
         entries = list(directory.iterdir())
     except OSError:
         return {}
-    return {entry.name.lower(): entry for entry in entries if entry.is_file()}
-
-
-def _norm(path: Path) -> Path:
-    """Canonicalize *path* so user input (e.g. cygpath -m forward slashes) and
-    filesystem results (``iterdir``, OS-native separators) compare equal."""
-    return Path(os.path.normpath(path))
+    return {entry.name.lower(): _norm(entry) for entry in entries if entry.is_file()}
 
 
 class ClosureResolver:
