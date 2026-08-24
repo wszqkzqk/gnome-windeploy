@@ -22,7 +22,7 @@ jobs:
         run: pytest -q
 
   windows-msys2:
-    name: Windows MSYS2 UCRT64 (end-to-end)
+    name: Windows MSYS2 UCRT64 package
     runs-on: windows-latest
     defaults:
       run:
@@ -34,63 +34,9 @@ jobs:
           msystem: UCRT64
           update: true
           install: >-
-            mingw-w64-ucrt-x86_64-gcc
-            mingw-w64-ucrt-x86_64-gtk4
-            mingw-w64-ucrt-x86_64-gstreamer
-            mingw-w64-ucrt-x86_64-pkgconf
-            mingw-w64-ucrt-x86_64-python
-            mingw-w64-ucrt-x86_64-python-pip
-            mingw-w64-ucrt-x86_64-python-hatchling
-            mingw-w64-ucrt-x86_64-python-pefile
-            mingw-w64-ucrt-x86_64-python-pytest
-      - name: Build a tiny GTK4 + GStreamer test app
+            git
+            makepkg-mingw
+      - name: Build the MSYS2 package (build + check + package)
         run: |
-          cat > hello.c <<'EOF'
-          #include <stdio.h>
-          #include <gtk/gtk.h>
-          #include <gst/gst.h>
-
-          int main(void) {
-              printf("gtk %u.%u.%u\n",
-                     gtk_get_major_version(), gtk_get_minor_version(), gtk_get_micro_version());
-              gst_init(NULL, NULL);
-              g_print("gstreamer %s\n", gst_version_string());
-              return 0;
-          }
-          EOF
-          mkdir -p app/bin
-          gcc -o app/bin/hello.exe hello.c $(pkg-config --cflags --libs gtk4 gstreamer-1.0)
-      - name: Install gnome-windeploy
-        run: python -m pip install --no-deps --no-build-isolation .
-      - name: Unit tests
-        run: python -m pytest -q
-      - name: Deploy a bundle (with gst-inspect as a second input exe)
-        run: |
-          python -m gnome_windeploy app/bin/hello.exe "$(cygpath -m /ucrt64)/bin/gst-inspect-1.0.exe" \
-            --dll-dir "$(cygpath -m /ucrt64)/bin" --destdir dist --zip -v
-      - name: Verify bundle layout
-        run: |
-          find dist | sort | head -60 || true
-          test -f dist/bin/hello.exe
-          test -f dist/bin/gst-inspect-1.0.exe
-          test -f dist/bin/libgtk-4-1.dll
-          test -f dist/bin/libgstreamer-1.0-0.dll
-          test -d dist/lib/gstreamer-1.0
-          test -f dist/share/glib-2.0/schemas/gschemas.compiled
-          test -f dist.zip
-      - name: Verify no absolute-path leaks in staged text files
-        run: |
-          ! grep -ri "ucrt64" dist \
-            --include='*.cache' --include='*.theme' --include='*.conf' --include='*.pc'
-      - name: Smoke-run the staged gst-inspect
-        run: ./dist/bin/gst-inspect-1.0.exe --version
-      - name: Deploy from a deliberately nonstandard layout
-        run: |
-          mkdir -p /c/gnome-custom
-          cp -a /ucrt64/bin /ucrt64/lib /ucrt64/share /ucrt64/etc /c/gnome-custom/
-          cp app/bin/hello.exe /c/gnome-custom/bin/
-          python -m gnome_windeploy "C:/gnome-custom/bin/hello.exe" --destdir dist2 -v
-          test -f dist2/bin/hello.exe
-          test -f dist2/bin/libgtk-4-1.dll
-          test -d dist2/lib/gstreamer-1.0
-          test -f dist2/share/glib-2.0/schemas/gschemas.compiled
+          cd distros/msys2
+          makepkg-mingw --noconfirm -s

@@ -109,9 +109,11 @@ ruff check .
 
 The test suite runs anywhere (Linux, macOS, Windows) — PE parsing is isolated
 behind an injectable `imports_provider`, so tests use fake dependency graphs
-and synthetic prefix trees instead of real binaries. CI additionally runs an
-end-to-end deployment of a real GTK 4 + GStreamer executable inside MSYS2
-UCRT64.
+and synthetic prefix trees instead of real binaries. When a real MinGW
+GTK 4 + GStreamer stack is detected (or pointed at via
+`GNOME_WINDEPLOY_TEST_PREFIX`), an additional end-to-end test compiles and
+deploys a real executable; it skips elsewhere. CI builds the MSYS2 package
+(`distros/msys2`), whose `check()` runs the whole suite including that test.
 
 ## License
 
