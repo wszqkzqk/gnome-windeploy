@@ -70,7 +70,7 @@ jobs:
             --dll-dir "$(cygpath -m /ucrt64)/bin" --destdir dist --zip -v
       - name: Verify bundle layout
         run: |
-          find dist | sort | head -60
+          find dist | sort | head -60 || true
           test -f dist/bin/hello.exe
           test -f dist/bin/gst-inspect-1.0.exe
           test -f dist/bin/libgtk-4-1.dll
