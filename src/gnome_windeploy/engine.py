@@ -539,6 +539,8 @@ def deploy(
         if not progress:
             break
 
+    warnings.extend(resolver.warnings)
+
     domains = sorted(
         {domain for desc in activated.values() for domain in desc.gettext_domains}
         | set(options.gettext_domains)

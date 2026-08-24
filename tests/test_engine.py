@@ -2,12 +2,13 @@
 
 import pytest
 
+from gnome_windeploy import pe
 from gnome_windeploy.engine import DeployOptions, LeakError, Stager, deploy
 from util import provider_of, touch
 
 
 def build_fake_stack(prefix):
-    """Create a synthetic GNOME prefix; return (app exe, fake PE import graph)."""
+    """Create a synthetic GNOME prefix; return (app exe, import graph, fake System32)."""
     app = touch(prefix / "bin/app.exe")
     gtk = touch(prefix / "bin/libgtk-4-1.dll")
     glib = touch(prefix / "bin/libglib-2.0-0.dll")
@@ -35,7 +36,9 @@ def build_fake_stack(prefix):
         gio_module: ["libglib-2.0-0.dll"],
         loader: ["libgdk_pixbuf-2.0-0.dll", "libglib-2.0-0.dll"],
     }
-    return app, graph
+    system32 = prefix.parent / "System32"
+    touch(system32 / "kernel32.dll")
+    return app, graph, system32
 
 
 def make_tool_runner(prefix):
@@ -61,9 +64,10 @@ def make_tool_runner(prefix):
     return runner
 
 
-def test_end_to_end_synthetic_stack(tmp_path):
+def test_end_to_end_synthetic_stack(monkeypatch, tmp_path):
     prefix = tmp_path / "stack"
-    app, graph = build_fake_stack(prefix)
+    app, graph, system32 = build_fake_stack(prefix)
+    monkeypatch.setattr(pe, "default_system_dirs", lambda: [system32])
     app_tree = tmp_path / "apptree"
     touch(app_tree / "share/mime/globs", "app version")
     destdir = tmp_path / "dist"

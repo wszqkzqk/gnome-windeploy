@@ -14,69 +14,9 @@ from pathlib import Path
 
 import pefile
 
-# Windows system DLLs that are never bundled. Stored without the ".dll" suffix,
-# except where the canonical name uses a different extension (winspool.drv).
-SYSTEM_DLL_BASENAMES: frozenset[str] = frozenset(
-    {
-        "advapi32",
-        "avrt",
-        "bcrypt",
-        "cfgmgr32",
-        "combase",
-        "comctl32",
-        "comdlg32",
-        "crypt32",
-        "d3d9",
-        "d3d11",
-        "d3d12",
-        "dbghelp",
-        "dnsapi",
-        "dwmapi",
-        "dwrite",
-        "dxgi",
-        "gdi32",
-        "gdiplus",
-        "glu32",
-        "imm32",
-        "iphlpapi",
-        "kernel32",
-        "msasn1",
-        "msimg32",
-        "msvcrt",
-        "netapi32",
-        "normaliz",
-        "ntdll",
-        "ole32",
-        "oleacc",
-        "oleaut32",
-        "oledlg",
-        "opengl32",
-        "powrprof",
-        "psapi",
-        "rpcrt4",
-        "secur32",
-        "setupapi",
-        "shcore",
-        "shell32",
-        "shlwapi",
-        "sspicli",
-        "ucrtbase",
-        "user32",
-        "userenv",
-        "uxtheme",
-        "version",
-        "winhttp",
-        "winmm",
-        "winspool.drv",
-        "wintrust",
-        "wlanapi",
-        "ws2_32",
-        "wtsapi32",
-    }
-)
-
-# Prefixes of virtual API-set DLL names resolved internally by the Windows loader.
-SYSTEM_DLL_PREFIXES: tuple[str, ...] = (
+# Virtual API-set name prefixes resolved internally by the Windows loader;
+# they never exist as files to bundle.
+API_SET_PREFIXES: tuple[str, ...] = (
     "api-ms-win-",
     "api-ms-wcr-",
     "ext-ms-win-",
@@ -87,22 +27,18 @@ SYSTEM_DLL_PREFIXES: tuple[str, ...] = (
 ImportsProvider = Callable[[Path], Iterable[str]]
 
 
-class MissingDependencyError(Exception):
-    """A non-system DLL import could not be resolved in any candidate directory."""
-
-    def __init__(self, dll_name: str, importer: Path) -> None:
-        self.dll_name = dll_name
-        self.importer = Path(importer)
-        super().__init__(f"cannot resolve dependency {dll_name!r} imported by {self.importer}")
+def is_api_set_dll(name: str) -> bool:
+    """Return True for virtual API-set names the Windows loader resolves internally."""
+    return name.lower().startswith(API_SET_PREFIXES)
 
 
-def is_system_dll(name: str) -> bool:
-    """Return True if *name* (a DLL file name, any casing) is a Windows system DLL."""
-    lowered = name.lower()
-    if lowered.startswith(SYSTEM_DLL_PREFIXES):
-        return True
-    base = lowered[:-4] if lowered.endswith(".dll") else lowered
-    return base in SYSTEM_DLL_BASENAMES or lowered in SYSTEM_DLL_BASENAMES
+def default_system_dirs() -> list[Path]:
+    """Windows system directories used to classify (never bundle) OS-provided DLLs."""
+    system_root = os.environ.get("SystemRoot")
+    if os.name != "nt" or not system_root:
+        return []
+    root = Path(system_root)
+    return [directory for directory in (root / "System32", root / "SysWOW64") if directory.is_dir()]
 
 
 def get_pe_imports(path: Path) -> tuple[frozenset[str], frozenset[str]]:
@@ -150,16 +86,16 @@ def _list_files_lower(directory: Path) -> dict[str, Path]:
 class ClosureResolver:
     """Incrementally resolve PE imports following Windows loader search order.
 
-    Candidate search directories start with the importing binary's own
-    directory; every newly resolved DLL adds its own directory to the
-    candidates; user-supplied ``dll_dirs`` are appended last. DLL name matching
-    is case-insensitive.
+    Imports that no candidate directory resolves are skipped when they are
+    virtual API sets or are found in ``system_dirs``; anything else lands in
+    ``warnings``.
     """
 
     def __init__(
         self,
         *,
         dll_dirs: Iterable[Path] = (),
+        system_dirs: Iterable[Path] | None = None,
         imports_provider: ImportsProvider | None = None,
     ) -> None:
         self._provider = imports_provider or default_imports_provider
@@ -168,6 +104,10 @@ class ClosureResolver:
         self._dir_cache: dict[Path, dict[str, Path]] = {}
         self.closure: dict[str, Path] = {}
         self.scanned: set[Path] = set()
+        self.warnings: list[str] = []
+        if system_dirs is None:
+            system_dirs = default_system_dirs()
+        self.system_dirs = [_norm(Path(directory)) for directory in system_dirs]
         for directory in dll_dirs:
             self.add_candidate(Path(directory))
 
@@ -188,11 +128,7 @@ class ClosureResolver:
         return None
 
     def resolve_imports(self, binary: Path) -> list[Path]:
-        """Resolve one binary's imports; return the newly resolved DLL origins.
-
-        Raises :class:`MissingDependencyError` for the first unresolvable
-        import that is not a Windows system DLL.
-        """
+        """Resolve one binary's imports; return the newly resolved DLL origins."""
         binary = _norm(Path(binary))
         if binary in self.scanned:
             return []
@@ -202,11 +138,13 @@ class ClosureResolver:
         newly: list[Path] = []
         for name in self._provider(binary):
             lower = name.lower()
-            if lower in self.closure or is_system_dll(lower):
+            if lower in self.closure or is_api_set_dll(lower):
                 continue
             found = self._find(lower, search_dirs)
             if found is None:
-                raise MissingDependencyError(name, binary)
+                if self._find(lower, self.system_dirs) is None:
+                    self.warnings.append(f"unresolved dependency {name!r} imported by {binary}")
+                continue
             self.closure[lower] = found
             self.add_candidate(found.parent)
             newly.append(found)
@@ -223,15 +161,17 @@ def compute_closure(
     seeds: Iterable[Path],
     *,
     dll_dirs: Iterable[Path] = (),
+    system_dirs: Iterable[Path] | None = None,
     imports_provider: ImportsProvider | None = None,
 ) -> dict[str, Path]:
     """Compute the transitive DLL dependency closure over *seeds*.
 
-    Returns an insertion-ordered mapping of lower-cased DLL name to its origin
-    path. Unresolvable Windows system DLLs are skipped silently; any other
-    unresolvable import raises :class:`MissingDependencyError` naming the DLL
-    and the binary that imports it.
+    Returns an insertion-ordered mapping of lower-cased DLL name to origin
+    path; skipped and unresolved imports are dropped (inspect warnings via
+    :class:`ClosureResolver` instead).
     """
-    resolver = ClosureResolver(dll_dirs=dll_dirs, imports_provider=imports_provider)
+    resolver = ClosureResolver(
+        dll_dirs=dll_dirs, system_dirs=system_dirs, imports_provider=imports_provider
+    )
     resolver.scan(seeds)
     return dict(resolver.closure)

@@ -4,10 +4,10 @@ import pytest
 
 from gnome_windeploy import pe
 from gnome_windeploy.pe import (
-    MissingDependencyError,
+    ClosureResolver,
     compute_closure,
     default_imports_provider,
-    is_system_dll,
+    is_api_set_dll,
 )
 from util import provider_of, touch
 
@@ -69,46 +69,42 @@ def test_newly_resolved_dll_adds_candidate_dir(tmp_path):
 @pytest.mark.parametrize(
     "name",
     [
-        "kernel32.dll",
-        "KERNEL32.DLL",
-        "msvcrt.dll",
-        "ucrtbase.dll",
-        "winspool.drv",
         "api-ms-win-core-file-l1-1-0.dll",
         "api-ms-wcr-heap-l1-1-0.dll",
         "ext-ms-win-ntuser-window-l1-1-0.dll",
     ],
 )
-def test_system_dll_detection(name):
-    assert is_system_dll(name)
+def test_api_set_detection(name):
+    assert is_api_set_dll(name)
 
 
-@pytest.mark.parametrize("name", ["libgtk-4-1.dll", "libglib-2.0-0.dll", "zlib1.dll"])
-def test_non_system_dll_detection(name):
-    assert not is_system_dll(name)
+@pytest.mark.parametrize("name", ["libgtk-4-1.dll", "kernel32.dll", "zlib1.dll"])
+def test_non_api_set_detection(name):
+    assert not is_api_set_dll(name)
 
 
-def test_system_dlls_are_skipped(tmp_path):
+def test_api_set_imports_are_skipped(tmp_path):
     bindir = tmp_path / "bin"
     app = touch(bindir / "app.exe")
-    graph = {app: ["kernel32.dll", "api-ms-win-core-x-l1-1-0.dll", "ntdll.dll"]}
+    graph = {app: ["api-ms-win-core-x-l1-1-0.dll", "ext-ms-win-y-l1-1-0.dll"]}
 
     closure = compute_closure([app], imports_provider=provider_of(graph))
 
     assert closure == {}
 
 
-def test_missing_dll_error_names_dll_and_importer(tmp_path):
+def test_unresolvable_import_records_warning(tmp_path):
     bindir = tmp_path / "bin"
     app = touch(bindir / "app.exe")
     graph = {app: ["nonexistent.dll"]}
 
-    with pytest.raises(MissingDependencyError) as excinfo:
-        compute_closure([app], imports_provider=provider_of(graph))
+    resolver = ClosureResolver(system_dirs=[], imports_provider=provider_of(graph))
+    resolver.scan([app])
 
-    message = str(excinfo.value)
-    assert "nonexistent.dll" in message
-    assert "app.exe" in message
+    assert resolver.closure == {}
+    (warning,) = resolver.warnings
+    assert "nonexistent.dll" in warning
+    assert "app.exe" in warning
 
 
 def test_default_provider_merges_regular_and_delay_imports(monkeypatch, tmp_path):
@@ -120,3 +116,15 @@ def test_default_provider_merges_regular_and_delay_imports(monkeypatch, tmp_path
     )
 
     assert default_imports_provider(fake) == ["delay.dll", "regular.dll"]
+
+
+def test_import_resolved_under_system_dirs_is_skipped(tmp_path):
+    bindir = tmp_path / "bin"
+    app = touch(bindir / "app.exe")
+    system32 = tmp_path / "System32"
+    touch(system32 / "hid.dll")
+    graph = {app: ["hid.dll"]}
+
+    closure = compute_closure([app], system_dirs=[system32], imports_provider=provider_of(graph))
+
+    assert closure == {}

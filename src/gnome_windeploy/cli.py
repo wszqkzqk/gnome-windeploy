@@ -10,7 +10,6 @@ import pefile
 
 from gnome_windeploy import __version__
 from gnome_windeploy.engine import DeployError, DeployOptions, DeployReport, deploy
-from gnome_windeploy.pe import MissingDependencyError
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -158,7 +157,7 @@ def main(argv: list[str] | None = None) -> int:
     except pefile.PEFormatError as exc:
         print(f"gnome-windeploy: error: not a valid PE binary: {exc}", file=sys.stderr)
         return 1
-    except (DeployError, MissingDependencyError) as exc:
+    except DeployError as exc:
         print(f"gnome-windeploy: error: {exc}", file=sys.stderr)
         return 1
     _print_summary(report, args.verbose)
