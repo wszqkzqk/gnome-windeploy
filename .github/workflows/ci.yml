@@ -37,6 +37,7 @@ jobs:
             mingw-w64-ucrt-x86_64-gcc
             mingw-w64-ucrt-x86_64-gtk4
             mingw-w64-ucrt-x86_64-gstreamer
+            mingw-w64-ucrt-x86_64-pkgconf
             mingw-w64-ucrt-x86_64-python
             mingw-w64-ucrt-x86_64-python-pip
       - name: Build a tiny GTK4 + GStreamer test app
@@ -62,7 +63,7 @@ jobs:
       - name: Deploy a bundle (with gst-inspect as a second input exe)
         run: |
           python -m gnome_windeploy hello.exe "$(cygpath -m /ucrt64)/bin/gst-inspect-1.0.exe" \
-            --prefix "$(cygpath -m /ucrt64)" --destdir dist --zip -v
+            --dll-dir "$(cygpath -m /ucrt64)/bin" --destdir dist --zip -v
       - name: Verify bundle layout
         run: |
           test -f dist/bin/hello.exe
