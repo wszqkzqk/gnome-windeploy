@@ -29,14 +29,21 @@ jobs:
         shell: msys2 {0}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: msys2/setup-msys2@v2
         with:
           msystem: UCRT64
           update: true
           install: >-
+            base-devel
             git
-            makepkg-mingw
       - name: Build the MSYS2 package (build + check + package)
         run: |
-          cd distros/msys2
+          cd "$GITHUB_WORKSPACE/distros/msys2"
           makepkg-mingw --noconfirm -s
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-package
+          path: distros/msys2/*.pkg.tar.zst
