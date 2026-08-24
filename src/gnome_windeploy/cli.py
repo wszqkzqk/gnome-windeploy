@@ -30,15 +30,6 @@ def build_parser() -> argparse.ArgumentParser:
         help="output directory for the bundle (must not exist or be empty)",
     )
     parser.add_argument(
-        "--prefix",
-        action="append",
-        type=Path,
-        default=[],
-        metavar="DIR",
-        help="installation prefix search-root hint (repeatable); "
-        "its bin/ and lib/ become initial DLL candidate dirs",
-    )
-    parser.add_argument(
         "--dll-dir",
         action="append",
         type=Path,
@@ -102,9 +93,6 @@ def _validate(parser: argparse.ArgumentParser, args: argparse.Namespace) -> list
             parser.error(f"--destdir {args.destdir} exists and is not a directory")
         elif any(args.destdir.iterdir()):
             parser.error(f"--destdir {args.destdir} exists and is not empty")
-    for prefix in args.prefix:
-        if not prefix.is_dir():
-            parser.error(f"--prefix directory not found: {prefix}")
     for dll_dir in args.dll_dir:
         if not dll_dir.is_dir():
             parser.error(f"--dll-dir directory not found: {dll_dir}")
@@ -156,7 +144,6 @@ def main(argv: list[str] | None = None) -> int:
     options = DeployOptions(
         exes=exes,
         destdir=args.destdir,
-        prefixes=[Path(prefix) for prefix in args.prefix],
         dll_dirs=[Path(directory) for directory in args.dll_dir],
         app_tree=args.app_tree,
         includes=list(args.include),

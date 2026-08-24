@@ -404,7 +404,6 @@ class DeployOptions:
 
     exes: list[Path]
     destdir: Path
-    prefixes: list[Path] = field(default_factory=list)
     dll_dirs: list[Path] = field(default_factory=list)
     app_tree: Path | None = None
     includes: list[str] = field(default_factory=list)
@@ -457,9 +456,6 @@ def deploy(
         if prefix not in known_prefixes:
             known_prefixes.append(prefix)
 
-    for prefix in options.prefixes:
-        add_known(prefix)
-
     # Application content first: the input exes, then the optional install
     # tree, so that app files win over dependency files on collision.
     exes = [Path(os.path.abspath(exe)) for exe in options.exes]
@@ -475,14 +471,7 @@ def deploy(
             if path.is_file():
                 stager.stage_file(path, app_tree, "app-tree")
 
-    initial_dll_dirs: list[Path] = []
-    for prefix in options.prefixes:
-        for subdir in ("bin", "lib"):
-            candidate = prefix / subdir
-            if candidate.is_dir():
-                initial_dll_dirs.append(candidate)
-    initial_dll_dirs.extend(options.dll_dirs)
-    resolver = ClosureResolver(dll_dirs=initial_dll_dirs, imports_provider=imports_provider)
+    resolver = ClosureResolver(dll_dirs=options.dll_dirs, imports_provider=imports_provider)
 
     icon_filter = icon_file_filter(options.icons)
     mirrored: set[str] = set()
