@@ -141,6 +141,12 @@ def _list_files_lower(directory: Path) -> dict[str, Path]:
     return {entry.name.lower(): entry for entry in entries if entry.is_file()}
 
 
+def _norm(path: Path) -> Path:
+    """Canonicalize *path* so user input (e.g. cygpath -m forward slashes) and
+    filesystem results (``iterdir``, OS-native separators) compare equal."""
+    return Path(os.path.normpath(path))
+
+
 class ClosureResolver:
     """Incrementally resolve PE imports following Windows loader search order.
 
@@ -166,6 +172,7 @@ class ClosureResolver:
             self.add_candidate(Path(directory))
 
     def add_candidate(self, directory: Path) -> None:
+        directory = _norm(directory)
         key = os.path.normcase(str(directory))
         if key not in self._candidate_keys:
             self._candidate_keys.add(key)
@@ -186,7 +193,7 @@ class ClosureResolver:
         Raises :class:`MissingDependencyError` for the first unresolvable
         import that is not a Windows system DLL.
         """
-        binary = Path(binary)
+        binary = _norm(Path(binary))
         if binary in self.scanned:
             return []
         self.scanned.add(binary)

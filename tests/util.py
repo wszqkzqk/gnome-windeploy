@@ -1,11 +1,13 @@
 """Shared helpers for building synthetic prefix trees in tests."""
 
+import os
 from collections.abc import Callable
 from pathlib import Path
 
 
 def touch(path: Path, content: str | bytes = b"") -> Path:
     """Create *path* (with parents) containing *content*; return the path."""
+    path = Path(os.path.normpath(path))
     path.parent.mkdir(parents=True, exist_ok=True)
     if isinstance(content, str):
         path.write_text(content, encoding="utf-8")
