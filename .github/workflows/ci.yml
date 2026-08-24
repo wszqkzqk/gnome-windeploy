@@ -28,6 +28,8 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
+      # MSYS2 provides only the TARGET stack: the compiler and the GTK/GStreamer
+      # installation that the test app links against and the tool bundles.
       - uses: actions/checkout@v4
       - uses: msys2/setup-msys2@v2
         with:
@@ -38,8 +40,12 @@ jobs:
             mingw-w64-ucrt-x86_64-gtk4
             mingw-w64-ucrt-x86_64-gstreamer
             mingw-w64-ucrt-x86_64-pkgconf
-            mingw-w64-ucrt-x86_64-python
-            mingw-w64-ucrt-x86_64-python-pip
+      # The tool itself runs on stock Windows CPython, like end users run it.
+      # MSYS2's mingw Python is not usable here: PyPI ships no wheels for its
+      # platform tag, so binary deps (ruff) cannot be installed.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       - name: Build a tiny GTK4 + GStreamer test app
         run: |
           cat > hello.c <<'EOF'
@@ -57,9 +63,11 @@ jobs:
           EOF
           gcc -o hello.exe hello.c $(pkg-config --cflags --libs gtk4 gstreamer-1.0)
       - name: Install gnome-windeploy
-        run: pip install -e '.[dev]'
+        run: |
+          python -c "import sys; print(sys.executable)"
+          python -m pip install -e '.[dev]'
       - name: Unit tests
-        run: pytest -q
+        run: python -m pytest -q
       - name: Deploy a bundle (with gst-inspect as a second input exe)
         run: |
           python -m gnome_windeploy hello.exe "$(cygpath -m /ucrt64)/bin/gst-inspect-1.0.exe" \
