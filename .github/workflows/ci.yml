@@ -58,17 +58,19 @@ jobs:
               return 0;
           }
           EOF
-          gcc -o hello.exe hello.c $(pkg-config --cflags --libs gtk4 gstreamer-1.0)
+          mkdir -p app/bin
+          gcc -o app/bin/hello.exe hello.c $(pkg-config --cflags --libs gtk4 gstreamer-1.0)
       - name: Install gnome-windeploy
         run: python -m pip install --no-deps --no-build-isolation .
       - name: Unit tests
         run: python -m pytest -q
       - name: Deploy a bundle (with gst-inspect as a second input exe)
         run: |
-          python -m gnome_windeploy hello.exe "$(cygpath -m /ucrt64)/bin/gst-inspect-1.0.exe" \
+          python -m gnome_windeploy app/bin/hello.exe "$(cygpath -m /ucrt64)/bin/gst-inspect-1.0.exe" \
             --dll-dir "$(cygpath -m /ucrt64)/bin" --destdir dist --zip -v
       - name: Verify bundle layout
         run: |
+          find dist | sort | head -60
           test -f dist/bin/hello.exe
           test -f dist/bin/gst-inspect-1.0.exe
           test -f dist/bin/libgtk-4-1.dll
@@ -86,7 +88,7 @@ jobs:
         run: |
           mkdir -p /c/gnome-custom
           cp -a /ucrt64/bin /ucrt64/lib /ucrt64/share /ucrt64/etc /c/gnome-custom/
-          cp hello.exe /c/gnome-custom/bin/
+          cp app/bin/hello.exe /c/gnome-custom/bin/
           python -m gnome_windeploy "C:/gnome-custom/bin/hello.exe" --destdir dist2 -v
           test -f dist2/bin/hello.exe
           test -f dist2/bin/libgtk-4-1.dll
