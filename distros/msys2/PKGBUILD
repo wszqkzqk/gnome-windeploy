@@ -3,7 +3,7 @@
 _realname=gnome-windeploy
 pkgbase=mingw-w64-${_realname}
 pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
-pkgver=0.1.0
+pkgver=r0.00000000.0000000
 pkgrel=1
 pkgdesc="Deployment tool for GNOME-platform desktop apps on Windows (mingw-w64)"
 arch=('any')
@@ -32,11 +32,10 @@ sha256sums=('SKIP')
 
 pkgver() {
     cd ${_realname}
-    _version=$(git describe --tags --abbrev=12 2>/dev/null | sed 's/^v//;s/-/./g')
-    if [ -z "$_version" ]; then
-        _version="0.1.0"
-    fi
-    echo "$_version"
+    printf "r%s.%s.%s" \
+        "$(git rev-list --count HEAD)" \
+        "$(git log -1 --format=%cd --date=format:%Y%m%d)" \
+        "$(git rev-parse --short HEAD)"
 }
 
 build() {
