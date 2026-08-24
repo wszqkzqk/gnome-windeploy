@@ -67,6 +67,10 @@ gnome_windeploy` does the same thing.
 | `--locale-langs zh_CN,de` | Language filter for `deps` locale mode. |
 | `--gettext-domain NAME` | Add your app's own gettext domain for locale mirroring (repeatable). |
 | `--zip` | Also create `<destdir>.zip`. |
+| `--nsis` | Also build an NSIS installer `<destdir>-setup.exe` (needs `makensis` on PATH). |
+| `--app-name NAME` | Application name for the installer (default: first exe's file name). |
+| `--app-version VER` | Application version for the installer (default: `0.0.0`). |
+| `--license FILE` | License text shown on an installer page. |
 | `-v`, `--verbose` | Verbose output (full DLL origin list). |
 
 ## Resource policy defaults (and opt-in trims)
@@ -92,7 +96,7 @@ gnome_windeploy` does the same thing.
 
 - GStreamer plugin subsets (only ship the plugins you actually use)
 - Icon allowlists (ship only named icons)
-- NSIS / Inno Setup / MSIX packaging exits
+- Inno Setup / MSIX packaging exits
 - More descriptors: libsoup / glib-networking, gtksourceview, VTE, gspell,
   GJS / typelib
 - gvsbuild / MSVC-built stack support

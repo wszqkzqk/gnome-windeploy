@@ -75,6 +75,26 @@ def build_parser() -> argparse.ArgumentParser:
         help="additional gettext domain to mirror locales for (repeatable)",
     )
     parser.add_argument("--zip", action="store_true", help="also create <destdir>.zip")
+    parser.add_argument(
+        "--nsis", action="store_true", help="also build an NSIS installer <destdir>-setup.exe"
+    )
+    parser.add_argument(
+        "--app-name",
+        metavar="NAME",
+        help="application name for the installer (default: first exe's file name)",
+    )
+    parser.add_argument(
+        "--app-version",
+        metavar="VER",
+        default="0.0.0",
+        help="application version for the installer (default: 0.0.0)",
+    )
+    parser.add_argument(
+        "--license",
+        type=Path,
+        metavar="FILE",
+        help="license text shown on an installer page",
+    )
     parser.add_argument("-v", "--verbose", action="store_true", help="verbose output")
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     return parser
@@ -124,6 +144,8 @@ def _print_summary(report: DeployReport, verbose: bool) -> None:
     print(f"  output size: {_format_size(report.output_size)}")
     if report.zip_path is not None:
         print(f"  zip: {report.zip_path}")
+    if report.installer_path is not None:
+        print(f"  installer: {report.installer_path}")
     for line in report.overrides:
         print(f"  override: {line}")
     for line in report.collisions:
@@ -151,6 +173,10 @@ def main(argv: list[str] | None = None) -> int:
         locale_langs=langs,
         gettext_domains=list(args.gettext_domain),
         zip=args.zip,
+        nsis=args.nsis,
+        app_name=args.app_name,
+        app_version=args.app_version,
+        license_file=args.license,
     )
     try:
         report = deploy(options)

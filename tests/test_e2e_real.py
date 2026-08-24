@@ -57,9 +57,18 @@ def test_deploy_real_gtk_gstreamer_app(tmp_path):
     gst_inspect = PREFIX / "bin" / "gst-inspect-1.0.exe"
     exes = [exe, gst_inspect] if gst_inspect.is_file() else [exe]
     destdir = tmp_path / "dist"
+    have_nsis = shutil.which("makensis") is not None
 
     report = deploy(
-        DeployOptions(exes=exes, destdir=destdir, dll_dirs=[PREFIX / "bin"], zip=True)
+        DeployOptions(
+            exes=exes,
+            destdir=destdir,
+            dll_dirs=[PREFIX / "bin"],
+            zip=True,
+            nsis=have_nsis,
+            app_name="Hello",
+            app_version="1.0.0",
+        )
     )
 
     assert (destdir / "bin" / "hello.exe").is_file()
@@ -68,6 +77,8 @@ def test_deploy_real_gtk_gstreamer_app(tmp_path):
     assert (destdir / "lib" / "gstreamer-1.0").is_dir()
     assert (destdir / "share" / "glib-2.0" / "schemas" / "gschemas.compiled").is_file()
     assert report.zip_path is not None and report.zip_path.is_file()
+    if have_nsis:
+        assert report.installer_path is not None and report.installer_path.is_file()
     assert not [line for line in report.warnings if "libgtk" in line or "libgst" in line]
 
     staged_inspect = destdir / "bin" / "gst-inspect-1.0.exe"

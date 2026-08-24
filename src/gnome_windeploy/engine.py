@@ -17,7 +17,7 @@ from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from gnome_windeploy import cachefix
+from gnome_windeploy import cachefix, nsis
 from gnome_windeploy.descriptors import REGISTRY
 from gnome_windeploy.descriptors.base import Descriptor
 from gnome_windeploy.pe import ClosureResolver, ImportsProvider
@@ -412,6 +412,10 @@ class DeployOptions:
     locale_langs: list[str] | None = None
     gettext_domains: list[str] = field(default_factory=list)
     zip: bool = False
+    nsis: bool = False
+    app_name: str | None = None
+    app_version: str = "0.0.0"
+    license_file: Path | None = None
 
 
 @dataclass
@@ -428,6 +432,7 @@ class DeployReport:
     staged_files: int
     output_size: int
     zip_path: Path | None = None
+    installer_path: Path | None = None
 
 
 def deploy(
@@ -565,6 +570,26 @@ def deploy(
     if options.zip:
         zip_path = Path(shutil.make_archive(str(staging), "zip", root_dir=staging))
 
+    installer_path = None
+    if options.nsis:
+        makensis = shutil.which("makensis")
+        if makensis is None:
+            raise DeployError("--nsis requested but makensis was not found on PATH")
+        installer_path = staging.parent / f"{staging.name}-setup.exe"
+        script = staging.parent / f"{staging.name}-setup.nsi"
+        script.write_text(
+            nsis.render_script(
+                app_name=options.app_name or exes[0].stem,
+                version=options.app_version,
+                bundle=staging,
+                out_file=installer_path,
+                main_exe=exes[0].relative_to(derive_prefix(exes[0])).as_posix(),
+                license_file=options.license_file,
+            ),
+            encoding="utf-8",
+        )
+        tool_runner([makensis, str(script)])
+
     output_size = sum(path.stat().st_size for path in staging.rglob("*") if path.is_file())
     return DeployReport(
         exes=[exe.relative_to(derive_prefix(exe)).as_posix() for exe in exes],
@@ -577,4 +602,5 @@ def deploy(
         staged_files=len(stager.index),
         output_size=output_size,
         zip_path=zip_path,
+        installer_path=installer_path,
     )

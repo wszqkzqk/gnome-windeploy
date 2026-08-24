@@ -24,6 +24,7 @@ checkdepends=(
     "${MINGW_PACKAGE_PREFIX}-gcc"
     "${MINGW_PACKAGE_PREFIX}-gstreamer"
     "${MINGW_PACKAGE_PREFIX}-gtk4"
+    "${MINGW_PACKAGE_PREFIX}-nsis"
     "${MINGW_PACKAGE_PREFIX}-pkgconf"
     "${MINGW_PACKAGE_PREFIX}-python-pytest"
 )
