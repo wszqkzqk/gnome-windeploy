@@ -14,7 +14,7 @@ Name "${{APP_NAME}}"
 OutFile "{out_file}"
 InstallDir "$PROGRAMFILES64\\${{APP_NAME}}"
 
-!include "MUI2.nsh"
+{icon_defines}!include "MUI2.nsh"
 {license_page}!insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_UNPAGE_CONFIRM
@@ -49,9 +49,13 @@ def render_script(
     out_file: Path,
     main_exe: str,
     license_file: Path | None = None,
+    icon_file: Path | None = None,
 ) -> str:
     """Render the NSIS script installing *bundle* with a Start Menu shortcut."""
     license_page = f'!insertmacro MUI_PAGE_LICENSE "{license_file}"\n' if license_file else ""
+    icon_defines = ""
+    if icon_file is not None:
+        icon_defines = f'!define MUI_ICON "{icon_file}"\n!define MUI_UNICON "{icon_file}"\n'
     return TEMPLATE.format(
         app_name=app_name,
         version=version,
@@ -59,4 +63,5 @@ def render_script(
         out_file=out_file,
         main_exe=main_exe.replace("/", "\\"),
         license_page=license_page,
+        icon_defines=icon_defines,
     )

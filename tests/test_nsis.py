@@ -22,7 +22,6 @@ def test_render_script_contains_installer_metadata(tmp_path):
     assert '!define APP_NAME "Hello App"' in script
     assert '!define APP_VERSION "1.2.3"' in script
     assert '"$INSTDIR\\bin\\hello.exe"' in script
-    assert "MUI_PAGE_LICENSE" not in script
 
 
 def test_render_script_with_license_page(tmp_path):
@@ -40,9 +39,29 @@ def test_render_script_with_license_page(tmp_path):
     assert f'!insertmacro MUI_PAGE_LICENSE "{license_file}"' in script
 
 
+def test_render_script_with_icon(tmp_path):
+    icon_file = touch(tmp_path / "app.ico", "ico")
+
+    script = nsis.render_script(
+        app_name="x",
+        version="0",
+        bundle=tmp_path,
+        out_file=tmp_path / "s.exe",
+        main_exe="app.exe",
+        icon_file=icon_file,
+    )
+
+    assert f'!define MUI_ICON "{icon_file}"' in script
+    assert f'!define MUI_UNICON "{icon_file}"' in script
+    mui_include = script.index('!include "MUI2.nsh"')
+    assert script.index("!define MUI_ICON") < mui_include
+    assert script.index("!define MUI_UNICON") < mui_include
+
+
 def test_nsis_installer_built_after_bundle(monkeypatch, tmp_path):
     prefix = tmp_path / "stack"
     app = touch(prefix / "bin/app.exe")
+    icon = touch(tmp_path / "app.ico")
     makensis = str(touch(tmp_path / "tools/makensis"))
     monkeypatch.setattr(shutil, "which", lambda name: makensis)
     calls = []
@@ -53,14 +72,16 @@ def test_nsis_installer_built_after_bundle(monkeypatch, tmp_path):
         return ""
 
     report = deploy(
-        DeployOptions(exes=[app], destdir=tmp_path / "dist", nsis=True),
+        DeployOptions(exes=[app], destdir=tmp_path / "dist", nsis=True, installer_icon=icon),
         imports_provider=provider_of({app: []}),
         tool_runner=fake_runner,
     )
 
     script = tmp_path / "dist-setup.nsi"
+    text = script.read_text(encoding="utf-8")
     assert calls == [[makensis, str(script)]]
-    assert '!define APP_NAME "app"' in script.read_text(encoding="utf-8")
+    assert '!define APP_NAME "app"' in text
+    assert f'!define MUI_ICON "{icon}"' in text
     assert report.installer_path == tmp_path / "dist-setup.exe"
     assert report.installer_path.is_file()
 

@@ -95,6 +95,12 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="FILE",
         help="license text shown on an installer page",
     )
+    parser.add_argument(
+        "--installer-icon",
+        type=Path,
+        metavar="FILE",
+        help="icon (.ico) for the installer and uninstaller",
+    )
     parser.add_argument("-v", "--verbose", action="store_true", help="verbose output")
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     return parser
@@ -177,6 +183,7 @@ def main(argv: list[str] | None = None) -> int:
         app_name=args.app_name,
         app_version=args.app_version,
         license_file=args.license,
+        installer_icon=args.installer_icon,
     )
     try:
         report = deploy(options)

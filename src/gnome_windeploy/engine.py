@@ -416,6 +416,7 @@ class DeployOptions:
     app_name: str | None = None
     app_version: str = "0.0.0"
     license_file: Path | None = None
+    installer_icon: Path | None = None
 
 
 @dataclass
@@ -585,6 +586,7 @@ def deploy(
                 out_file=installer_path,
                 main_exe=exes[0].relative_to(derive_prefix(exes[0])).as_posix(),
                 license_file=options.license_file,
+                icon_file=options.installer_icon,
             ),
             encoding="utf-8",
         )

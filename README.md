@@ -80,6 +80,7 @@ available as `python -m gnome_windeploy`.
 | `--app-name NAME` | Installer application name. Defaults to the first executable's filename. |
 | `--app-version VER` | Installer version. Defaults to `0.0.0`. |
 | `--license FILE` | License text for the NSIS license page. |
+| `--installer-icon FILE` | Icon (.ico) for the installer and uninstaller. |
 | `-v`, `--verbose` | Print the origin of every resolved DLL. |
 | `--version` | Print the installed version and exit. |
 
