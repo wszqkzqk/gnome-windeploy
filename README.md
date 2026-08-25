@@ -30,6 +30,8 @@ The built-in descriptors currently cover:
 - gdk-pixbuf loaders and their cache;
 - GTK 3 and GTK 4 themes, settings, and icon themes;
 - GStreamer 1.0 plugins and `gst-plugin-scanner.exe`;
+- GtkSourceView 3 and 4 language definitions and style schemes;
+- enchant spell-checker providers;
 - gettext catalogs for libadwaita and the other registered components; and
 - fontconfig configuration.
 
